@@ -62,29 +62,29 @@ format_and_install_minios() {
         mkfs.ext4 /dev/${disk}1 -L "MiniOS System"
 
         echo "30"
-        echo "# Creando el directorio /media/sda..."
+        echo "# Creando el directorio /media/sda1..."
         echo "40"
 
-        # Crear el directorio /media/sda
-        mkdir -p /media/sda
+        # Crear el directorio /media/sda1
+        mkdir -p /media/sda1
 
         echo "60"
-        echo "# Montando el disco en /media/sda..."
+        echo "# Montando el disco en /media/sda1..."
         echo "70"
 
-        # Montar el disco en /media/sda
-        mount /dev/${disk}1 /media/sda
+        # Montar el disco en /media/sda1
+        mount /dev/${disk}1 /media/sda1
 
         echo "80"
-        echo "# Copiando los archivos de instalación de MiniOS a /media/sda..."
+        echo "# Copiando los archivos de instalación de MiniOS a /media/sda1..."
         echo "90"
 
         # Copiar los archivos de instalación de MiniOS a /media/sda
-        cp -R $PATH_MINIOS_LIVE_CD/ /media/sda/
+        cp -R $PATH_MINIOS_LIVE_CD/* /media/sda1/
 
         echo "100"
         echo "# Ejecutando el script de instalación de MiniOS..."
-        $PATH_MINIOS_LIVE_CD/minios/boot/bootinstall.sh
+        sh /media/sda1/minios/boot/bootinst.sh
     ) | zenity --progress --title="Instalando MiniOS" --text="Iniciando la instalación de MiniOS en el disco /dev/$disk..." --auto-close --auto-kill
 
     if [ $? -eq 0 ]; then
