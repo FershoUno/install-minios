@@ -1,19 +1,20 @@
 #!/bin/bash
 
-# variables
+# Path to MiniOS live CD
 PATH_MINIOS_LIVE_CD="/run/initramfs/memory/data"
 
-# Funcion de salida forzada (Ctrl + C)
+# Function to handle force exit (Ctrl + C)
 force_exit() {
     zenity --info --title="$INFO" --text="$MESSAGE_TEXT_FORCE_EXIT" --no-wrap
     exit 0
 }
 
-# Establecer la función de salida como controlador de señal para el evento de cierre de la ventana
+# Trap signals to call force_exit function
 trap force_exit SIGINT SIGTERM
 
-# Idiomas agregados
+# Function for Spanish installation
 spanish_install() {
+    # Localization strings for Spanish
     MAIN_MENU="Menú principal"
     MAIN_OPTION_COLUMN="Opción"
     MAIN_TEXT="Seleccione una opción"
@@ -42,8 +43,9 @@ spanish_install() {
     show_main_menu
 }
 
+# Function for English installation
 english_install() {
-
+    # Localization strings for English
     MAIN_MENU="Main Menu"
     MAIN_OPTION_COLUMN="Option"
     MAIN_TEXT="Please select an option"
@@ -72,13 +74,44 @@ english_install() {
     show_main_menu
 }
 
+# Function for Russian installation
+russian_install() {
+    # Localization strings for Russian
+    MAIN_MENU="Главное меню"
+    MAIN_OPTION_COLUMN="Опция"
+    MAIN_TEXT="Пожалуйста, выберите опцию"
+    MAIN_OPTION_ONE="Выбрать диск и установить MiniOS"
+    EXIT="Выход"
+    SELECT_DISK_TITLE="Выбрать диск"
+    COLUMN_DISK="Диск"
+    SELECT_DISK_TEXT="Пожалуйста, выберите диск"
+    TITLE_WARNING="Предупреждение"
+    TEXT_WARNING1="Хотите установить MiniOS на диск ->"
+    TEXT_WARNING2="?\n\nПредупреждение: Диск будет отформатирован, и все данные на нем будут потеряны."
+    TEXT_FORMAT_0_10="Форматирование диска /dev/$disk с таблицей разделов MBR и файловой системой Ext4..."
+    TEXT_FORMAT_30_40="# Создание каталога /media/sda1..."
+    TEXT_FORMAT_60_70="# Монтирование диска в /media/sda1..."
+    TEXT_FORMAT_80_90="# Копирование файлов установки MiniOS в /media/sda1..."
+    TEXT_FORMAT_100="# Запуск скрипта установки MiniOS..."
+    TITLE_INSTALLING="Установка MiniOS"
+    TITLE_TEXT_INSTALLING="Начало установки MiniOS на диск /dev/$disk..."
+    TITLE_FINISH="Установка завершена"
+    TITLE_TEXT_FINISH1="Установка MiniOS на диск"
+    TITLE_TEXT_FINISH2="завершена успешно."
+    TITLE_ERROR="Ошибка"
+    TITLE_TEXT_ERROR="Во время установки MiniOS на диск произошла ошибка"
+    MESSAGE_TEXT_FORCE_EXIT="Спасибо за использование установщика MiniOS. До свидания!"
+    INFO="Информация"
+    show_main_menu
+}
+
 language_select() {
 
-    # Diálogo de selección de idioma
-    idioma=$(zenity --list --title="MiniOS Installer" --text="Select the installer language:" --column="Language" "Español" "English" --height=200 --width=250)
+    # Language selection dialog
+    language=$(zenity --list --title="MiniOS Installer" --text="Select the installer language:" --column="Language" "Español" "English" --height=200 --width=250)
 
-    # Ejecución de función según la selección de idioma
-    case $idioma in
+    # Execute function based on language selection
+    case $language in
     "Español")
         spanish_install
         ;;
@@ -94,7 +127,7 @@ language_select() {
 
 }
 
-# Función para mostrar el menú principal
+# Function to display the main menu
 show_main_menu() {
     CHOICE=$(zenity --list --title="$MAIN_MENU" --column="$MAIN_OPTION_COLUMN" --text="$MAIN_TEXT" \
         "$MAIN_OPTION_ONE" "$EXIT")
@@ -112,7 +145,7 @@ show_main_menu() {
     esac
 }
 
-# Función para seleccionar un disco y realizar la instalación de MiniOS
+# Function to select a disk and perform MiniOS installation
 select_disk_and_install() {
     DISKS=$(lsblk -o NAME,SIZE -n -d -e 7,11 | awk '{print $1 "(" $2 ")"}')
 
@@ -139,17 +172,17 @@ select_disk_and_install() {
     fi
 }
 
-# Función para formatear el disco seleccionado e instalar MiniOS
+# Function to format the selected disk and install MiniOS
 format_and_install_minios() {
     local disk=$1
     echo $disk
 
     (
-        echo "0" # Valor inicial de la barra de progreso
+        echo "0" # Initial value of the progress bar
         echo "$TEXT_FORMAT_0_10"
         echo "10"
 
-        # Formatear el disco con tabla de partición MBR y sistema de archivos Ext4
+        # Format the disk with MBR partition table and Ext4 file system
         echo -e "o\nn\np\n1\n\n\nt\n83\nw" | fdisk /dev/$disk
         mkfs.ext4 /dev/${disk}1 -L "MiniOS System"
 
@@ -157,21 +190,21 @@ format_and_install_minios() {
         echo "$TEXT_FORMAT_30_40"
         echo "40"
 
-        # Crear el directorio /media/sda1
+        # Create the /media/sda1 directory
         mkdir -p /media/sda1
 
         echo "60"
         echo "$TEXT_FORMAT_60_70"
         echo "70"
 
-        # Montar el disco en /media/sda1
+        # Mount the disk to /media/sda1
         mount /dev/${disk}1 /media/sda1
 
         echo "80"
         echo "$TEXT_FORMAT_80_90"
         echo "90"
 
-        # Copiar los archivos de instalación de MiniOS a /media/sda
+        # Copy MiniOS installation files to /media/sda
         cp -R $PATH_MINIOS_LIVE_CD/* /media/sda1/
 
         echo "100"
@@ -188,8 +221,8 @@ format_and_install_minios() {
     show_main_menu
 }
 
-# Menu de idioma
+# Language menu
 language_select
 
-# Mostrar el menú principal
+# Display the main menu
 show_main_menu
