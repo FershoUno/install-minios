@@ -6,17 +6,17 @@
 PATH_MINIOS_LIVE_CD="/run/initramfs/memory/data"
 
 check_root() {
-    # Verificar si se está ejecutando como root
+    # Check if you are running as root
     if [[ $(id -u) -eq 0 ]]; then
-        # Si se está ejecutando como root, ejecutar el menú principal directament
+        # If you are running as root, run the main menu directly
         check_language_system
     else
-        # Si no se está ejecutando como root, solicitar autenticación de root usando pkexec y luego ejecutar el menú principal
+        # If you are not running as root, request root authentication using pkexec and then run the main menu
         if pkexec true; then
-            # Autenticación de root exitosa, ejecutar el menú principal
+            # Root authentication successful, run main menu
             check_language_system
         else
-            # Autenticación de root fallida, mostrar mensaje de error y salir
+            # Root authentication failed, show error message and exit
             echo "Failed to authenticate as root. The script will exit"
             exit 1
         fi
@@ -50,7 +50,6 @@ spanish_translate() {
     TITLE_ERROR="Error"
     TITLE_TEXT_ERROR="Se produjo un error durante la instalación de MiniOS en el disco"
 
-    echo $welcome_es
     check_efi_run
     main_menu
 }
@@ -81,8 +80,7 @@ english_translate() {
     TITLE_TEXT_FINISH2="has been completed successfully."
     TITLE_ERROR="Error"
     TITLE_TEXT_ERROR="An error occurred during the installation of MiniOS on disk"
-    
-    echo $welcome_en
+
     check_efi_run
     main_menu
 }
@@ -91,8 +89,6 @@ english_translate() {
 russian_translate() {
     # Localization strings for Russian
 
-
-    echo $welcome_ru
     check_efi_run
     main_menu
 }
@@ -102,9 +98,6 @@ check_language_system() {
 
     language_code=${LANG}
     language_code=$(echo $language_code | cut -d "_" -f 1)
-    welcome_es="¡Bienvenido!"
-    welcome_en="Welcome!"
-    welcome_ru="Добро пожаловать!"
 
     # Check the language and display the corresponding welcome message.
     if [[ $language_code == "es" ]]; then
@@ -143,6 +136,7 @@ list_disks() {
 
 }
 ###################################################################################3
+
 
 format_and_install_minios() {
     local disk=$1
@@ -189,7 +183,7 @@ format_and_install_minios() {
         yad --error --title="$TITLE_ERROR" --text="$TITLE_TEXT_ERROR /dev/$disk ."
     fi
 
-    show_main_menu
+    main_menu
 }
 
 ##############################################################################################
