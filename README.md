@@ -1,5 +1,5 @@
 # install-minios
-instalador simple para MiniOS (https://minios.dev)
+simple installer for MiniOS (https://minios.dev)
 
 
 # Ejecutar
