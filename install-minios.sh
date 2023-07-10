@@ -89,6 +89,29 @@ english_translate() {
 russian_translate() {
     # Localization strings for Russian
 
+    EFI_TEXT_YES="Вы загружаетесь с EFI"
+    EFI_TEXT_NO="Вы загружаетесь без EFI"
+    TITLE_MAIN="Меню опций"
+    TITLE_MAIN_TEXT="Выберите опции установки"
+    BUTTON_TEXT_INSTALL="Установить"
+    BUTTON_TEXT_CANCEL="Отмена"
+    BUTTON_TEXT_RELOAD_DISKS="Перезагрузить диски"
+    MAIN_SELECT_DEVICE_INSTALL="Выберите устройство"
+    MAIN_SELECT_FILESYSTEM="Выберите файловую систему"
+    
+    TEXT_FORMAT_0_10="Форматирование диска /dev/$disk с таблицей разделов MBR и файловой системой Ext4..."
+    TEXT_FORMAT_30_40="# Создание каталога /mnt/${disk}1..."
+    TEXT_FORMAT_60_70="# Монтирование диска в /mnt/${disk}1..."
+    TEXT_FORMAT_80_90="# Копирование файлов установки MiniOS в /mnt/${disk}1..."
+    TEXT_FORMAT_100="# Запуск скрипта установки MiniOS..."
+    TITLE_INSTALLING="Установка MiniOS"
+    TITLE_TEXT_INSTALLING="Начало установки MiniOS на диск /dev/$disk..."
+    TITLE_FINISH="Установка завершена"
+    TITLE_TEXT_FINISH1="Установка MiniOS на диск"
+    TITLE_TEXT_FINISH2="была успешно завершена."
+    TITLE_ERROR="Ошибка"
+    TITLE_TEXT_ERROR="Во время установки MiniOS на диск произошла ошибка"
+
     check_efi_run
     main_menu
 }
@@ -128,10 +151,10 @@ check_efi_run() {
 list_disks() {
 
     # Retreive the list of hard disk devices
-    devices_disk=$(lsblk -o NAME,SIZE -n -d -e 7,11 | awk '{print $1 "(" $2 ")"}')
+    devices_disk=$(lsblk -o NAME,SIZE -n -d -I 8,259,252 | awk '{print $1 "(" $2 ")"}')
     devices_disk=$(echo $devices_disk | tr ' ' '!')
     filesystem="Ext4!Fat32"
-    #device_bootloader=$(lsblk -o NAME -n -d -e 7,11 | awk '{print $1}')
+    #device_bootloader=$(lsblk -o NAME -n -d -I 8,259,252 | awk '{print $1}')
     #device_bootloader=$(echo $device_bootloader | tr ' ' '!')
 
 }
