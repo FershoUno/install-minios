@@ -2,6 +2,6 @@
 simple installer for MiniOS (https://minios.dev)
 
 
-# Ejecutar
+# Exceute
 
     bash install-minios.sh
