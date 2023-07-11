@@ -186,7 +186,7 @@ format_partition() {
     if [ "$filesystem" = "Ext4" ]; then
         sudo mkfs.ext4 -L "$label" "$partition"
     elif [ "$filesystem" = "Fat32" ]; then
-        sudo mkfs.fat -F32 -n "$label" "$partition"
+        sudo mkfs.vfat -F32 -n "MINIOS" "$partition"
     elif [ "$filesystem" = "btrfs" ]; then
         sudo mkfs.btrfs -L "$label" "$partition"
     elif [ "$filesystem" = "xfs" ]; then
