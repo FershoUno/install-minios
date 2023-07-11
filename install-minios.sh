@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#set -x
+set -x
 
 # Path to MiniOS live CD
 PATH_MINIOS_LIVE_CD="/run/initramfs/memory/data"
@@ -50,6 +50,8 @@ spanish_translate() {
     TITLE_ERROR="Error"
     TITLE_TEXT_ERROR="Se produjo un error durante la instalación de MiniOS en el disco"
 
+    MESSAGE_NOT_FOUND_FILESYSTEM="Sistema de archivo no encontrado o no valido"
+    MESSAGE_FORMAT_DISK="Formateo exitoso!"
     check_efi_run
     main_menu
 }
@@ -98,7 +100,7 @@ russian_translate() {
     BUTTON_TEXT_RELOAD_DISKS="Перезагрузить диски"
     MAIN_SELECT_DEVICE_INSTALL="Выберите устройство"
     MAIN_SELECT_FILESYSTEM="Выберите файловую систему"
-    
+
     TEXT_FORMAT_0_10="Форматирование диска /dev/$disk с таблицей разделов MBR и файловой системой Ext4..."
     TEXT_FORMAT_30_40="# Создание каталога /mnt/${disk}1..."
     TEXT_FORMAT_60_70="# Монтирование диска в /mnt/${disk}1..."
@@ -153,17 +155,63 @@ list_disks() {
     # Retreive the list of hard disk devices
     devices_disk=$(lsblk -o NAME,SIZE -n -d -I 8,259,252 | awk '{print $1 "(" $2 ")"}')
     devices_disk=$(echo $devices_disk | tr ' ' '!')
-    filesystem="Ext4!Fat32"
+    filesystem="Ext4!Fat32!btrfs!xfs"
     #device_bootloader=$(lsblk -o NAME -n -d -I 8,259,252 | awk '{print $1}')
     #device_bootloader=$(echo $device_bootloader | tr ' ' '!')
 
 }
 ###################################################################################3
 
+format_disk() {
+    local disk="$1"
+    disk=$(echo $disk | cut -d "(" -f 1)
+    echo $disk
+    # Crear una nueva tabla de particiones MBR
+    echo -e "o\nw" | fdisk "$disk"
+    echo -e "n\np\n1\n\n\nw" | fdisk "$disk"
+    echo "$MESSAGE_FORMAT_DISK"
+}
+
+format_partition() {
+
+    local disk="$1"
+    disk=$(echo $disk | cut -d "(" -f 1)
+    echo $disk
+
+    local partition="${disk}1"
+    local filesystem="$2"
+    local label="MiniOS System"
+
+    if [ "$filesystem" = "Ext4" ]; then
+        mkfs.ext4 -L "$label" "$partition"
+    elif [ "$filesystem" = "Fat32" ]; then
+        mkfs.mkfs.fat -F32 -n "$label" "$partition"
+    elif [ "$filesystem" = "btrfs" ]; then
+        mkfs.mkfs.btrfs -L "$label" "$partition"
+    elif [ "$filesystem" = "xfs" ]; then
+        mkfs.xfs -L "$label" "$partition"
+    else
+        echo "$MESSAGE_NOT_FOUND_FILESYSTEM"
+    fi
+}
+
+copy_cd() {
+
+    mkdir -p /mnt/${disk}1
+    cp -R PATH_MINIOS_LIVE_CD/* /mnt/${disk}1/
+
+}
+
+run_script_bootinst() {
+    sh /mnt/${disk}1/minios/boot/bootinst.sh
+}
 
 format_and_install_minios() {
     local disk=$1
-    #    echo $disk
+
+    disk=$(echo $disk | cut -d "(" -f 1)
+
+    echo $disk
     (
         echo "0" # Initial value of the progress bar
         echo "$TEXT_FORMAT_0_10"
@@ -231,7 +279,6 @@ main_menu() {
     # Retrieve the selected values
     selected_device_disk=$(echo "$selection" | cut -d"|" -f1)
     selected_filesystem=$(echo "$selection" | cut -d"|" -f2)
-
     function_button "$selection"
 }
 
@@ -240,8 +287,10 @@ function_button() {
     local button_selected=$?
     case $button_selected in
     0)
-
-        format_and_install_minios $selected_device_disk
+        echo $selected_device_disk
+        
+        format_disk "$selected_device_disk"
+        format_partition "$selected_device_disk" "$selected_filesystem"
         ;;
     1)
 
