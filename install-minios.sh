@@ -163,7 +163,7 @@ partition_disk() {
     local disk="$1"
     disk=$(echo $disk | cut -d "(" -f 1)
     echo $disk
-    echo -e "o\nn\np\n1\n\n\nw" | fdisk /dev/"$disk"
+    echo -e "o\nn\np\n1\n\n\nw" | sudo fdisk /dev/"$disk"
 }
 
 force_delete_partiton_disk(){
@@ -184,14 +184,13 @@ format_partition() {
     local label="MiniOS System"
 
     if [ "$filesystem" = "Ext4" ]; then
-        mkfs.ext4 -L "$label" "$partition"
-        mount /dev/${disk}1 /mnt/${disk}1
+        sudo mkfs.ext4 -L "$label" "$partition"
     elif [ "$filesystem" = "Fat32" ]; then
-        mkfs.mkfs.fat -F32 -n "$label" "$partition"
+        sudo mkfs.mkfs.fat -F32 -n "$label" "$partition"
     elif [ "$filesystem" = "btrfs" ]; then
-        mkfs.mkfs.btrfs -L "$label" "$partition"
+        sudo mkfs.mkfs.btrfs -L "$label" "$partition"
     elif [ "$filesystem" = "xfs" ]; then
-        mkfs.xfs -L "$label" "$partition"
+        sudo mkfs.xfs -L "$label" "$partition"
     else
         echo "$MESSAGE_NOT_FOUND_FILESYSTEM: $filesystem"
     fi
@@ -201,8 +200,8 @@ mount_device(){
     local disk="$1"
     disk=$(echo $disk | cut -d "(" -f 1)
     echo $disk
-    mkdir -p /mnt/${disk}1
-    mount /dev/${disk}1 /mnt/${disk}1
+    sudo mkdir -p /mnt/${disk}1
+    sudo mount /dev/${disk}1 /mnt/${disk}1
 
 }
 
@@ -210,7 +209,7 @@ copy_minios() {
     local disk="$1"
     disk=$(echo $disk | cut -d "(" -f 1)
     echo $disk
-    cp -R $PATH_MINIOS_LIVE_CD/* /mnt/${disk}1/
+    sudo cp -R $PATH_MINIOS_LIVE_CD/* /mnt/${disk}1/
 
 }
 
@@ -218,7 +217,7 @@ run_script_bootinst() {
     local disk="$1"
     disk=$(echo $disk | cut -d "(" -f 1)
     echo $disk
-    sh /mnt/${disk}1/minios/boot/bootinst.sh
+    sudo sh /mnt/${disk}1/minios/boot/bootinst.sh
 }
 
 # Function disabled
