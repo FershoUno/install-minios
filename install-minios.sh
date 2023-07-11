@@ -5,23 +5,12 @@ set -x
 # Path to MiniOS live CD
 PATH_MINIOS_LIVE_CD="/run/initramfs/memory/data"
 
+# Функция для проверки наличия прав root
 check_root() {
-    # Check if you are running as root
-    if [[ $(id -u) -eq 0 ]]; then
-        # If you are running as root, run the main menu directly
-        check_language_system
-    else
-        # If you are not running as root, request root authentication using pkexec and then run the main menu
-        if pkexec true; then
-            # Root authentication successful, run main menu
-            check_language_system
-        else
-            # Root authentication failed, show error message and exit
-            echo "Failed to authenticate as root. The script will exit"
-            exit 1
-        fi
+    if [[ $EUID -ne 0 ]]; then
+        pkexec "$0"
+        exit 0
     fi
-
 }
 
 # Function for Spanish installation
@@ -52,8 +41,6 @@ spanish_translate() {
 
     MESSAGE_NOT_FOUND_FILESYSTEM="Sistema de archivo no encontrado o no valido"
     MESSAGE_FORMAT_DISK="Formateo exitoso!"
-    check_efi_run
-    main_menu
 }
 
 # Function for Enlgish installation
@@ -82,9 +69,6 @@ english_translate() {
     TITLE_TEXT_FINISH2="has been completed successfully."
     TITLE_ERROR="Error"
     TITLE_TEXT_ERROR="An error occurred during the installation of MiniOS on disk"
-
-    check_efi_run
-    main_menu
 }
 
 # Function for Russian installation
@@ -113,13 +97,10 @@ russian_translate() {
     TITLE_TEXT_FINISH2="была успешно завершена."
     TITLE_ERROR="Ошибка"
     TITLE_TEXT_ERROR="Во время установки MiniOS на диск произошла ошибка"
-
-    check_efi_run
-    main_menu
 }
 
 # Get the system language
-check_language_system() {
+check_system_language() {
 
     language_code=${LANG}
     language_code=$(echo $language_code | cut -d "_" -f 1)
@@ -132,7 +113,7 @@ check_language_system() {
     elif [[ $language_code == "ru" ]]; then
         russian_translate
     else
-        exit 0
+        english_translate
     fi
 
 }
@@ -150,9 +131,9 @@ check_efi_run() {
 list_disks() {
 
     # Retreive the list of hard disk devices
-    devices_disk=$(lsblk -o NAME,SIZE -n -d -I 8,259,252 | awk '{print $1 "(" $2 ")"}')
+    devices_disk=$(lsblk -o NAME,SIZE -n -d -I 3,8,259,252 | awk '{print $1 "(" $2 ")"}')
     devices_disk=$(echo $devices_disk | tr ' ' '!')
-    filesystem="Ext4!Fat32!btrfs!xfs"
+    filesystem="btrfs!ext2!ext4!fat32!ntfs!xfs"
     #device_bootloader=$(lsblk -o NAME -n -d -I 8,259,252 | awk '{print $1}')
     #device_bootloader=$(echo $device_bootloader | tr ' ' '!')
 
@@ -163,16 +144,15 @@ partition_disk() {
     local disk="$1"
     disk=$(echo $disk | cut -d "(" -f 1)
     echo $disk
-    echo -e "o\nn\np\n1\n\n\nw" | sudo fdisk /dev/"$disk"
+    echo -e "o\nn\np\n1\n\n\nw" | fdisk /dev/"$disk"
 }
 
-force_delete_partiton_disk(){
+force_delete_partiton_disk() {
     local disk="$1"
     disk=$(echo $disk | cut -d "(" -f 1)
     echo $disk
-    echo -e "d\nw" | sudo fdisk /dev/$disk
+    echo -e "d\nw" | fdisk /dev/$disk
 }
-
 
 format_partition() {
     local disk="$1"
@@ -181,27 +161,20 @@ format_partition() {
 
     local partition="/dev/${disk}1"
     local filesystem="$2"
-    local label="MINIOS"
 
-    if [ "$filesystem" = "Ext4" ]; then
-        sudo mkfs.ext4 -L "$label" "$partition"
-    elif [ "$filesystem" = "Fat32" ]; then
-        sudo mkfs.vfat -F32 -n "$label" "$partition"
-    elif [ "$filesystem" = "btrfs" ]; then
-        sudo mkfs.btrfs -L "$label" "$partition"
-    elif [ "$filesystem" = "xfs" ]; then
-        sudo mkfs.xfs -L "$label" "$partition"
+    if [ "$filesystem" = "fat32" ]; then
+        mkfs.vfat "$partition"
     else
-        echo "$MESSAGE_NOT_FOUND_FILESYSTEM: $filesystem"
+        mkfs.$filesystem "$partition"
     fi
 }
 
-mount_device(){
+mount_device() {
     local disk="$1"
     disk=$(echo $disk | cut -d "(" -f 1)
     echo $disk
-    sudo mkdir -p /mnt/${disk}1
-    sudo mount /dev/${disk}1 /mnt/${disk}1
+    mkdir -p /mnt/${disk}1
+    mount /dev/${disk}1 /mnt/${disk}1
 
 }
 
@@ -209,7 +182,7 @@ copy_minios() {
     local disk="$1"
     disk=$(echo $disk | cut -d "(" -f 1)
     echo $disk
-    sudo cp -R $PATH_MINIOS_LIVE_CD/* /mnt/${disk}1/
+    cp -R $PATH_MINIOS_LIVE_CD/* /mnt/${disk}1/
 
 }
 
@@ -217,11 +190,11 @@ run_script_bootinst() {
     local disk="$1"
     disk=$(echo $disk | cut -d "(" -f 1)
     echo $disk
-    sudo sh /mnt/${disk}1/minios/boot/bootinst.sh
+    bash /mnt/${disk}1/minios/boot/bootinst.sh
 }
 
 # Function disabled
-process_install_minios() {
+install_minios() {
     local disk=$1
 
     disk=$(echo $disk | cut -d "(" -f 1)
@@ -288,7 +261,7 @@ main_menu() {
         --field="$MAIN_SELECT_FILESYSTEM:CB" "${filesystem}" \
         --button="$BUTTON_TEXT_INSTALL":0 \
         --button="$BUTTON_TEXT_CANCEL":1 \
-        --button="$BUTTON_TEXT_RELOAD_DISKS":2 )
+        --button="$BUTTON_TEXT_RELOAD_DISKS":2)
 
     # Retrieve the selected values
     selected_device_disk=$(echo "$selection" | cut -d"|" -f1)
@@ -320,3 +293,9 @@ function_button() {
 }
 
 check_root
+
+check_system_language
+
+check_efi_run
+
+main_menu
