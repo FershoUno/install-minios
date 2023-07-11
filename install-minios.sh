@@ -181,12 +181,12 @@ format_partition() {
 
     local partition="/dev/${disk}1"
     local filesystem="$2"
-    local label="MiniOS System"
+    local label="MINIOS"
 
     if [ "$filesystem" = "Ext4" ]; then
         sudo mkfs.ext4 -L "$label" "$partition"
     elif [ "$filesystem" = "Fat32" ]; then
-        sudo mkfs.vfat -F32 -n "MINIOS" "$partition"
+        sudo mkfs.vfat -F32 -n "$label" "$partition"
     elif [ "$filesystem" = "btrfs" ]; then
         sudo mkfs.btrfs -L "$label" "$partition"
     elif [ "$filesystem" = "xfs" ]; then
