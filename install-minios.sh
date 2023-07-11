@@ -127,12 +127,9 @@ check_language_system() {
     # Check the language and display the corresponding welcome message.
     if [[ $language_code == "es" ]]; then
         spanish_translate
-        echo $welcome_es
     elif [[ $language_code == "en" ]]; then
-        echo $welcome_en
         english_translate
     elif [[ $language_code == "ru" ]]; then
-        echo $welcome_ru
         russian_translate
     else
         exit 0
@@ -162,28 +159,33 @@ list_disks() {
 }
 ###################################################################################3
 
-format_disk() {
+partition_disk() {
     local disk="$1"
     disk=$(echo $disk | cut -d "(" -f 1)
     echo $disk
-    # Crear una nueva tabla de particiones MBR
-    echo -e "o\nw" | fdisk "$disk"
-    echo -e "n\np\n1\n\n\nw" | fdisk "$disk"
-    echo "$MESSAGE_FORMAT_DISK"
+    echo -e "o\nn\np\n1\n\n\nw" | fdisk /dev/"$disk"
 }
 
-format_partition() {
+force_delete_partiton_disk(){
+    local disk="$1"
+    disk=$(echo $disk | cut -d "(" -f 1)
+    echo $disk
+    echo -e "d\nw" | sudo fdisk /dev/$disk
+}
 
+
+format_partition() {
     local disk="$1"
     disk=$(echo $disk | cut -d "(" -f 1)
     echo $disk
 
-    local partition="${disk}1"
+    local partition="/dev/${disk}1"
     local filesystem="$2"
     local label="MiniOS System"
 
     if [ "$filesystem" = "Ext4" ]; then
         mkfs.ext4 -L "$label" "$partition"
+        mount /dev/${disk}1 /mnt/${disk}1
     elif [ "$filesystem" = "Fat32" ]; then
         mkfs.mkfs.fat -F32 -n "$label" "$partition"
     elif [ "$filesystem" = "btrfs" ]; then
@@ -191,22 +193,36 @@ format_partition() {
     elif [ "$filesystem" = "xfs" ]; then
         mkfs.xfs -L "$label" "$partition"
     else
-        echo "$MESSAGE_NOT_FOUND_FILESYSTEM"
+        echo "$MESSAGE_NOT_FOUND_FILESYSTEM: $filesystem"
     fi
 }
 
-copy_cd() {
-
+mount_device(){
+    local disk="$1"
+    disk=$(echo $disk | cut -d "(" -f 1)
+    echo $disk
     mkdir -p /mnt/${disk}1
-    cp -R PATH_MINIOS_LIVE_CD/* /mnt/${disk}1/
+    mount /dev/${disk}1 /mnt/${disk}1
+
+}
+
+copy_minios() {
+    local disk="$1"
+    disk=$(echo $disk | cut -d "(" -f 1)
+    echo $disk
+    cp -R $PATH_MINIOS_LIVE_CD/* /mnt/${disk}1/
 
 }
 
 run_script_bootinst() {
+    local disk="$1"
+    disk=$(echo $disk | cut -d "(" -f 1)
+    echo $disk
     sh /mnt/${disk}1/minios/boot/bootinst.sh
 }
 
-format_and_install_minios() {
+# Function disabled
+process_install_minios() {
     local disk=$1
 
     disk=$(echo $disk | cut -d "(" -f 1)
@@ -273,9 +289,8 @@ main_menu() {
         --field="$MAIN_SELECT_FILESYSTEM:CB" "${filesystem}" \
         --button="$BUTTON_TEXT_INSTALL":0 \
         --button="$BUTTON_TEXT_CANCEL":1 \
-        --button="$BUTTON_TEXT_RELOAD_DISKS":2)
+        --button="$BUTTON_TEXT_RELOAD_DISKS":2 )
 
-    function_button "$selection"
     # Retrieve the selected values
     selected_device_disk=$(echo "$selection" | cut -d"|" -f1)
     selected_filesystem=$(echo "$selection" | cut -d"|" -f2)
@@ -288,9 +303,11 @@ function_button() {
     case $button_selected in
     0)
         echo $selected_device_disk
-        
-        format_disk "$selected_device_disk"
+        partition_disk "$selected_device_disk"
         format_partition "$selected_device_disk" "$selected_filesystem"
+        mount_device "$selected_device_disk"
+        copy_minios "$selected_device_disk"
+        run_script_bootinst "$selected_device_disk"
         ;;
     1)
 
