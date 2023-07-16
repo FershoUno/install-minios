@@ -204,7 +204,7 @@ main_menu() {
     selection=$(
         yad --form \
             --title="$(translate "Options Menu")" \
-            --text="$(translate "Select installation options for MiniOS.Choose the device and file system to install MiniOS on"):\n" \
+            --text="$(translate "Select installation options for MiniOS. Choose the device and file system to install MiniOS on."):\n" \
             --width=300 --height=200 \
             --buttons-layout="center" \
             --on-top \
