@@ -1,18 +1,32 @@
+#!/bin/bash
+
+# This script is used for installing MiniOS on a disk.
+
+# Include the minioslib library and exit if it fails
 . /usr/lib/minioslib || exit 1
 
+# Set the version number and current working directory
 VERSION="1.0"
 CWD=$(pwd)
+
+# Read the configuration from /etc/minios/config for LIVEKITNAME and SYSTEMNAME variables
 read_config /etc/minios/config LIVEKITNAME
 LIVEKITNAME=${LIVEKITNAME:-"minios"}
 read_config /etc/minios/buildconfig SYSTEMNAME
 SYSTEMNAME=${SYSTEMNAME:-"MiniOS"}
+
+# Regular expression pattern for filtering disks
 REGEX='^$'
+
+# Check if the script is running as root, if not, run with root privileges using pkexec
 check_root() {
     if [[ $EUID -ne 0 ]]; then
         pkexec "$0"
         exit 0
     fi
 }
+
+# Translate text based on the system's locale
 translate() {
     local TEXT=$1
     local LNG=$(locale | grep LANG | cut -d= -f2 | cut -d_ -f1)
@@ -28,18 +42,25 @@ translate() {
         echo $TEXT
     fi
 }
+
+# List available disks
 list_disks() {
     DISKS=$(lsblk -Jo NAME,SIZE -n -d -I 3,8,259,252 | jq -r '.blockdevices[] | .name + "(" + .size + ")"')
     DISKS=$(echo $DISKS | tr ' ' '!')
     FILESYSTEMS="btrfs!ext2!ext4!fat32!ntfs!xfs"
 }
+
+# Partition the disk
 partition_disk() {
     echo -e "o\nn\np\n1\n\n\nw" | fdisk $DEV
 }
+
+# Wipe the disk
 wipe_disk() {
     dd if=/dev/zero of=$DEV bs=4096 count=273
-
 }
+
+# Format the partition
 format_partition() {
     if [ "$FS" = "fat32" ]; then
         mkfs.vfat "$PART"
@@ -49,6 +70,8 @@ format_partition() {
         mkfs."$FS" "$PART"
     fi
 }
+
+# Mount the partition
 mount_part() {
     if [ ! -d $DESTINATION ]; then
         mkdir -p $DESTINATION
@@ -57,12 +80,16 @@ mount_part() {
         fi
     fi
 }
+
+# Unmount the partition
 umount_part() {
     if mountpoint -q $DESTINATION; then
         umount $DESTINATION
         rmdir $DESTINATION
     fi
 }
+
+# Copy MiniOS files to the destination partition
 copy_files() {
     if [ -d /run/initramfs/memory ]; then
         SOURCE="/run/initramfs/memory"
@@ -87,6 +114,7 @@ copy_files() {
     EFI="$MINIOS/boot/EFI"
     echo $SYSTEMNAME >/tmp/info
     cat <<EOF >/tmp/README
+# README file contents
 
 * To install MiniOS, copy the contents of the ISO to the root of the media,
   then run minios\boot\bootinst.bat on Windows, or minios/boot/bootinst.sh
@@ -97,7 +125,6 @@ copy_files() {
 * When installed on media with ext2-ext4, xfs, btrfs file systems, changes in
   the persistent changes mode will be saved in the minios\changes folder with
   no size limit.
-
 EOF
     GRAFT=$(
         cd "$MINIOS"
@@ -121,6 +148,8 @@ EOF
     done <<<"$GRAFT"
     mkdir -p $DESTINATION/$LIVEKITNAME/{boot,modules,changes,scripts}
 }
+
+# Install the boot record
 install_boot_record() {
     BOOT="$DESTINATION/$LIVEKITNAME/boot"
     cd "$BOOT"
@@ -141,9 +170,7 @@ install_boot_record() {
         exit 1
     fi
     if [ "$DEV" != "$PART" ]; then
-
         dd bs=440 count=1 conv=notrunc if="$BOOT/mbr.bin" of="$DEV" 2>/dev/null
-
         PART="$(echo "$PART" | sed -r "s:.*[^0-9]::")"
         (
             fdisk -l "$DEV" | fgrep "*" | fgrep "$DEV" | cut -d " " -f 1 |
@@ -157,6 +184,8 @@ install_boot_record() {
     echo "Boot installation finished."
     cd "$CWD"
 }
+
+# Perform the MiniOS installation process
 install_minios() {
     (
         echo "0"
@@ -164,16 +193,16 @@ install_minios() {
         echo "5"
         wipe_disk
         echo "10"
-        echo "$(translate "Creating a new PART on disk $PART...")"
+        echo "$(translate "Creating a new partition on disk $PART...")"
         partition_disk
         echo "15"
-        echo "$(translate "Formatting disk $PART with MBR PART table and") $FS $(translate "file system...")"
+        echo "$(translate "Formatting disk $PART with MBR partition table and") $FS $(translate "file system...")"
         format_partition
         echo "20"
-        echo "$(translate "Mounting the new PART on disk $PART...")"
+        echo "$(translate "Mounting the new partition on disk $PART...")"
         mount_part
         echo "25"
-        echo "$(translate "Copying MiniOS files to the new PART on disk $PART...")"
+        echo "$(translate "Copying MiniOS files to the new partition on disk $PART...")"
         copy_files
         echo "90"
         echo "$(translate "Running the MiniOS boot installer on disk $PART...")"
@@ -185,12 +214,13 @@ install_minios() {
     echo $FAILED
     if [ "$FAILED" != "true" ]; then
         yad --info --title="$(translate "Installation Complete")" --text="$(translate "Installation of MiniOS on disk") $PART $(translate "has been completed successfully.")" --no-wrap
-
     else
         yad --error --title="$(translate "Error")" --text="$(translate "An error occurred during the installation of MiniOS on disk") $PART ."
     fi
     final_question
 }
+
+# Display the main menu for selecting installation options
 main_menu() {
     list_disks
     MAIN_FORM=$(
@@ -257,5 +287,8 @@ final_question() {
     esac
 }
 
+# Check if the script is running as root, if not, run with root privileges using pkexec
 check_root
+
+# Start the installation process by displaying the main menu
 main_menu
