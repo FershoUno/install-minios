@@ -199,29 +199,27 @@ install_minios() {
     fi
     final_question
 }
-###############
+
 function final_question() {
-  local translation=$(translate "Thank you for installing MiniOS")
 
   selection=$(yad --form \
-    --title=$(translate "Completion Message") \
-    --text="$(translate "Thank you for installing MiniOS") \
+    --title="$(translate "Completion Message")" \
+    --text="$(translate "Thank you for installing MiniOS")" \
     --width=300 --height=200 \
     --buttons-layout="center" \
     --on-top \
     --form \
-    --button=$(translate "Return to Installer"):0 \
-    --button=$(translate "Restart the Computer"):1
+    --button="$(translate "Return to Installer")":0 \
+    --button="$(translate "Restart the Computer")":1
   )
 
   button_question "$selection"
 }
 
 button_question() {
-  local exit_code=$?
-  local button_clicked=$1
+  local button_question=$?
 
-  case $exit_code in
+  case $button_question in
     0) # Return to Main Menu
       main_menu
       ;;
@@ -230,9 +228,6 @@ button_question() {
       ;;
   esac
 }
-
-
-
 main_menu() {
     list_disks
     selection=$(
