@@ -16,5 +16,9 @@
   "Installation of MiniOS on disk": "Установка MiniOS на диск",
   "has been completed successfully.": "была успешно завершена.",
   "Error": "Ошибка",
-  "An error occurred during the installation of MiniOS on disk": "Во время установки MiniOS на диск произошла ошибка"
+  "An error occurred during the installation of MiniOS on disk": "Во время установки MiniOS на диск произошла ошибка",
+  "Thank you for installing MiniOS": "Спасибо за установку MiniOS",
+  "Completion Message": "Сообщение о завершении",
+  "Return to Installer": "Вернуться к установщику",
+  "Restart the Computer": "Перезагрузить компьютер"
 }
