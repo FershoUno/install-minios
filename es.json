@@ -16,5 +16,11 @@
   "Installation of MiniOS on disk": "Instalación de MiniOS en el disco",
   "has been completed successfully.": "se ha completado con éxito.",
   "Error": "Error",
-  "An error occurred during the installation of MiniOS on disk": "Ocurrió un error durante la instalación de MiniOS en el disco"
+  "An error occurred during the installation of MiniOS on disk": "Ocurrió un error durante la instalación de MiniOS en el disco",
+  "Thank you for installing MiniOS": "Gracias por instalar MiniOS",
+  "Completion Message": "Mensaje de Finalización",
+  "Return to Installer": "Regresar al Instalador",
+  "Restart the Computer": "Reiniciar el Ordenador"
+
+
 }
