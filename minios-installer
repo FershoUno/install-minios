@@ -1,13 +1,12 @@
-#!/bin/bash
-
 . /usr/lib/minioslib || exit 1
+
 VERSION="1.0"
 CWD=$(pwd)
 read_config /etc/minios/config LIVEKITNAME
 LIVEKITNAME=${LIVEKITNAME:-"minios"}
 read_config /etc/minios/buildconfig SYSTEMNAME
 SYSTEMNAME=${SYSTEMNAME:-"MiniOS"}
-
+REGEX='^$'
 check_root() {
     if [[ $EUID -ne 0 ]]; then
         pkexec "$0"
@@ -15,47 +14,56 @@ check_root() {
     fi
 }
 translate() {
-    local text=$1
-    local lang=$(locale | grep LANG | cut -d= -f2 | cut -d_ -f1)
-    local translation_file="/usr/share/minios/minios-installer/$lang.json"
-    if [ -f "$translation_file" ]; then
-        local translation=$(jq -r --arg text "$text" '.[$text]' "$translation_file")
-        if [ "$translation" != "null" ]; then
-            echo $translation
+    local TEXT=$1
+    local LNG=$(locale | grep LANG | cut -d= -f2 | cut -d_ -f1)
+    local TRANSLATION_FILE="/usr/share/minios/minios-installer/$LNG.json"
+    if [ -f "$TRANSLATION_FILE" ]; then
+        local TRANSLATION=$(jq -r --arg TEXT "$TEXT" '.[$TEXT]' "$TRANSLATION_FILE")
+        if [ "$TRANSLATION" != "null" ]; then
+            echo $TRANSLATION
         else
-            echo $text
+            echo $TEXT
         fi
     else
-        echo $text
+        echo $TEXT
     fi
 }
 list_disks() {
-    available_disks=$(lsblk -Jo NAME,SIZE -n -d -I 3,8,259,252 | jq -r '.blockdevices[] | .name + "(" + .size + ")"')
-    available_disks=$(echo $available_disks | tr ' ' '!')
-    available_filesystems="btrfs!ext2!ext4!fat32!ntfs!xfs"
+    DISKS=$(lsblk -Jo NAME,SIZE -n -d -I 3,8,259,252 | jq -r '.blockdevices[] | .name + "(" + .size + ")"')
+    DISKS=$(echo $DISKS | tr ' ' '!')
+    FILESYSTEMS="btrfs!ext2!ext4!fat32!ntfs!xfs"
 }
 partition_disk() {
-    echo -e "o\nn\np\n1\n\n\nw" | fdisk /dev/"$selected_disk"
+    echo -e "o\nn\np\n1\n\n\nw" | fdisk $DEV
 }
-delete_partition() {
-    echo -e "d\nw" | fdisk /dev/$selected_disk
+wipe_disk() {
+    dd if=/dev/zero of=$DEV bs=4096 count=273
+
 }
 format_partition() {
-    local partition="/dev/$selected_partition"
-    local filesystem="$2"
-    if [ "$filesystem" = "fat32" ]; then
-        mkfs.vfat "$partition"
+    if [ "$FS" = "fat32" ]; then
+        mkfs.vfat "$PART"
+    elif [ "$FS" = "btrfs2" ] || [ "$FS" = "ntfs" ]; then
+        mkfs."$FS" -f "$PART"
     else
-        mkfs.$filesystem "$partition"
+        mkfs."$FS" "$PART"
     fi
 }
-mount_disk() {
-    if ! mount /dev/$selected_partition $DESTINATION; then
-        exit 1
+mount_part() {
+    if [ ! -d $DESTINATION ]; then
+        mkdir -p $DESTINATION
+        if ! mount $PART $DESTINATION; then
+            exit 1
+        fi
+    fi
+}
+umount_part() {
+    if mountpoint -q $DESTINATION; then
+        umount $DESTINATION
+        rmdir $DESTINATION
     fi
 }
 copy_files() {
-    #cp -R $MINIOS_LIVE_CD_PATH/* $DESTINATION/
     if [ -d /run/initramfs/memory ]; then
         SOURCE="/run/initramfs/memory"
     elif [ -d /memory ]; then
@@ -76,12 +84,10 @@ copy_files() {
         echo "Cannot find boot/isolinux.bin in MiniOS data" >&2
         exit 2
     fi
-
     EFI="$MINIOS/boot/EFI"
-
     echo $SYSTEMNAME >/tmp/info
     cat <<EOF >/tmp/README
-################################### README ####################################
+
 * To install MiniOS, copy the contents of the ISO to the root of the media,
   then run minios\boot\bootinst.bat on Windows, or minios/boot/bootinst.sh
   on Linux.
@@ -91,9 +97,8 @@ copy_files() {
 * When installed on media with ext2-ext4, xfs, btrfs file systems, changes in
   the persistent changes mode will be saved in the minios\changes folder with
   no size limit.
-###############################################################################
-EOF
 
+EOF
     GRAFT=$(
         cd "$MINIOS"
         find . -type f | sed -r "s:^[.]/::" | egrep -v "^boot/isolinux.(bin|boot)$" | egrep -v "^boot/isohdpfx.(bin|boot)$" | egrep -v "^changes/" | egrep -v "$REGEX" | while read LINE; do
@@ -116,41 +121,29 @@ EOF
     done <<<"$GRAFT"
     mkdir -p $DESTINATION/$LIVEKITNAME/{boot,modules,changes,scripts}
 }
-run_boot_installer() {
+install_boot_record() {
     BOOT="$DESTINATION/$LIVEKITNAME/boot"
     cd "$BOOT"
-
-    # find out device and mountpoint
-    PART="$(df . | tail -n 1 | tr -s " " | cut -d " " -f 1)"
-    DEV="$(echo "$PART" | sed -r "s:[0-9]+\$::" | sed -r "s:([0-9])[a-z]+\$:\\1:i")"
-
     ARCH=$(uname -m)
     if [ "$ARCH" = "x86_64" ]; then ARCH=64; else ARCH=32; fi
     EXTLINUX=extlinux.x$ARCH
-
     if [ ! -x ./$EXTLINUX ]; then
         mount -o remount,exec $DEV
         chmod a+x ./$EXTLINUX
     fi
-
     if [ ! -x ./$EXTLINUX ]; then
         cp -f ./$EXTLINUX ./extlinux.exe
         EXTLINUX=extlinux.exe
     fi
-
-    # install syslinux bootloader
     ./"$EXTLINUX" --install "$BOOT"
-
     if [ $? -ne 0 ]; then
         echo "Error installing boot loader."
         exit 1
     fi
-
     if [ "$DEV" != "$PART" ]; then
-        # Setup MBR on the first block
+
         dd bs=440 count=1 conv=notrunc if="$BOOT/mbr.bin" of="$DEV" 2>/dev/null
 
-        # Toggle bootable flags
         PART="$(echo "$PART" | sed -r "s:.*[^0-9]::")"
         (
             fdisk -l "$DEV" | fgrep "*" | fgrep "$DEV" | cut -d " " -f 1 |
@@ -160,104 +153,74 @@ run_boot_installer() {
             echo w
         ) | fdisk $DEV >/dev/null 2>&1
     fi
-
-    # UEFI boot loader
-    cp -r "EFI" "$BOOT/../../"
-
+    #cp -r "EFI" "$BOOT/../../"
     echo "Boot installation finished."
     cd "$CWD"
 }
 install_minios() {
     (
         echo "0"
-        echo "$(translate "Formatting disk /dev/$selected_partition with MBR partition table and") $selected_filesystem $(translate "file system...")"
+        umount_part
+        echo "5"
+        wipe_disk
         echo "10"
-        delete_partition
+        echo "$(translate "Creating a new PART on disk $PART...")"
         partition_disk
-        format_partition "$selected_partition" "$selected_filesystem"
-        echo "30"
-        echo "$(translate "Creating a new partition on disk /dev/$selected_partition...")"
-        echo "40"
-        mkdir -p $DESTINATION
-        echo "60"
-        echo "$(translate "Mounting the new partition on disk /dev/$selected_partition...")"
-        echo "70"
-        mount_disk
-        echo "80"
-        echo "$(translate "Copying MiniOS files to the new partition on disk /dev/$selected_partition...")"
-        echo "90"
+        echo "15"
+        echo "$(translate "Formatting disk $PART with MBR PART table and") $FS $(translate "file system...")"
+        format_partition
+        echo "20"
+        echo "$(translate "Mounting the new PART on disk $PART...")"
+        mount_part
+        echo "25"
+        echo "$(translate "Copying MiniOS files to the new PART on disk $PART...")"
         copy_files
+        echo "90"
+        echo "$(translate "Running the MiniOS boot installer on disk $PART...")"
+        install_boot_record
+        echo "95"
+        umount_part
         echo "100"
-        echo "$(translate "Running the MiniOS boot installer on disk /dev/$selected_partition...")"
-        run_boot_installer
-    ) | yad --progress --title="$(translate "Installing MiniOS")" --text="$(translate "Starting installation of MiniOS on disk /dev/$selected_partition...")" --auto-close --auto-kill
-    if [ $? -eq 0 ]; then
-        yad --info --title="$(translate "Installation Complete")" --text="$(translate "Installation of MiniOS on disk") /dev/$selected_partition $(translate "has been completed successfully.")" --no-wrap
-        #force_exit
+    ) | yad --progress --title="$(translate "Installing MiniOS")" --text="$(translate "Starting installation of MiniOS on disk $PART...")" --auto-close --auto-kill
+    echo $FAILED
+    if [ "$FAILED" != "true" ]; then
+        yad --info --title="$(translate "Installation Complete")" --text="$(translate "Installation of MiniOS on disk") $PART $(translate "has been completed successfully.")" --no-wrap
+
     else
-        yad --error --title="$(translate "Error")" --text="$(translate "An error occurred during the installation of MiniOS on disk") /dev/$selected_partition ."
+        yad --error --title="$(translate "Error")" --text="$(translate "An error occurred during the installation of MiniOS on disk") $PART ."
     fi
-    final_question
-}
-
-function final_question() {
-
-  selection=$(yad --form \
-    --title="$(translate "Completion Message")" \
-    --text="$(translate "Thank you for installing MiniOS")" \
-    --width=300 --height=200 \
-    --buttons-layout="center" \
-    --on-top \
-    --form \
-    --button="$(translate "Return to Installer")":0 \
-    --button="$(translate "Restart the Computer")":1
-  )
-
-  button_question "$selection"
-}
-
-button_question() {
-  local button_question=$?
-
-  case $button_question in
-    0) # Return to Main Menu
-      main_menu
-      ;;
-    1) # Restart the Computer
-      reboot
-      ;;
-  esac
+    main_menu
 }
 main_menu() {
     list_disks
-    selection=$(
+    MAIN_FORM=$(
         yad --form \
             --title="$(translate "Options Menu")" \
-            --text="$(translate "Select installation options for MiniOS. Choose the device and file system to install MiniOS on."):\n" \
+            --text="$(translate "Select installation options for MiniOS"):\n" \
             --width=300 --height=200 \
             --buttons-layout="center" \
             --on-top \
             --form \
-            --field="$(translate "Select device"):CB" "${available_disks}" \
-            --field="$(translate "Select file system"):CB" "${available_filesystems}" \
+            --field="$(translate "Select device"):CB" "${DISKS}" \
+            --field="$(translate "Select file system"):CB" "${FILESYSTEMS}" \
+            --field="$(translate "EFI"):CHK" "" "$(translate "GPT"):CHK" \
             --button=gtk-cancel:101 \
             --button="$(translate "Install")!ubiquity":102 \
             --button=gtk-refresh:103
-
     )
-    local button_clicked=$?
-    echo $button_clicked $selection
-    selected_device=$(echo "$selection" | cut -d"|" -f1)
-    selected_disk=$(echo $selected_device | cut -d "(" -f 1)
-    selected_partition="${selected_disk}1"
-    selected_filesystem=$(echo "$selection" | cut -d "|" -f2)
-    DESTINATION="/mnt/$selected_partition"
+    local BUTTON=$?
+    echo $BUTTON $MAIN_FORM
+    DEV_DESC=$(echo "$MAIN_FORM" | cut -d"|" -f1)
+    DEV_NAME=$(echo $DEV_DESC | cut -d "(" -f 1)
+    PART_NAME="${DEV_NAME}1"
+    DEV="/dev/$DEV_NAME"
+    PART="/dev/$PART_NAME"
+    FS=$(echo "$MAIN_FORM" | cut -d "|" -f2)
+    EFI_SUPPORT=$(echo "$MAIN_FORM" | cut -d "|" -f3)
+    GPT_SUPPORT=$(echo "$MAIN_FORM" | cut -d "|" -f4)
+    DESTINATION="/mnt/$PART_NAME"
 
-    handle_button_click "$button_clicked"
-}
-handle_button_click() {
-    local button=$1
-    case $button in
+    case $BUTTON in
     101)
         exit 0
         ;;
