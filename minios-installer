@@ -197,8 +197,42 @@ install_minios() {
     else
         yad --error --title="$(translate "Error")" --text="$(translate "An error occurred during the installation of MiniOS on disk") /dev/$selected_partition ."
     fi
-    main_menu
+    final_question
 }
+###############
+function final_question() {
+  local translation=$(translate "Thank you for installing MiniOS")
+
+  selection=$(yad --form \
+    --title=$(translate "Completion Message") \
+    --text="$(translate "Thank you for installing MiniOS") \
+    --width=300 --height=200 \
+    --buttons-layout="center" \
+    --on-top \
+    --form \
+    --button=$(translate "Return to Installer"):0 \
+    --button=$(translate "Restart the Computer"):1
+  )
+
+  button_question "$selection"
+}
+
+button_question() {
+  local exit_code=$?
+  local button_clicked=$1
+
+  case $exit_code in
+    0) # Return to Main Menu
+      main_menu
+      ;;
+    1) # Restart the Computer
+      reboot
+      ;;
+  esac
+}
+
+
+
 main_menu() {
     list_disks
     selection=$(
