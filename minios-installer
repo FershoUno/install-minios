@@ -194,36 +194,36 @@ show_error_message() {
 
 # Perform the MiniOS installation process
 install_minios() {
-        echo "0"
-        umount_part || show_error_message
-        echo "5"
-        wipe_disk || show_error_message
-        echo "10"
-        echo "$(translate "Creating a new partition on disk $PART...")"
-        partition_disk || show_error_message
-        echo "15"
-        echo "$(translate "Formatting disk $PART with MBR partition table and") $FS $(translate "file system...")"
-        format_partition || show_error_message
-        echo "20"
-        echo "$(translate "Mounting the new partition on disk $PART...")"
-        mount_part || show_error_message
-        echo "25"
-        echo "$(translate "Copying MiniOS files to the new partition on disk $PART...")"
-        copy_files || show_error_message
-        echo "90"
-        echo "$(translate "Running the MiniOS boot installer on disk $PART...")"
-        install_boot_record || show_error_message
-        echo "95"
-        umount_part || show_error_message
-        echo "100"
-        final_question
+    echo "0"
+    umount_part || show_error_message
+    echo "5"
+    wipe_disk || show_error_message
+    echo "10"
+    echo "$(translate "Creating a new partition on disk $PART...")"
+    partition_disk || show_error_message
+    echo "15"
+    echo "$(translate "Formatting disk $PART with MBR partition table and") $FS $(translate "file system...")"
+    format_partition || show_error_message
+    echo "20"
+    echo "$(translate "Mounting the new partition on disk $PART...")"
+    mount_part || show_error_message
+    echo "25"
+    echo "$(translate "Copying MiniOS files to the new partition on disk $PART...")"
+    copy_files || show_error_message
+    echo "90"
+    echo "$(translate "Running the MiniOS boot installer on disk $PART...")"
+    install_boot_record || show_error_message
+    echo "95"
+    umount_part || show_error_message
+    echo "100"
+    final_question
 }
 # Display the main menu for selecting installation options
 main_menu() {
     list_disks
     MAIN_FORM=$(
         yad --form \
-            --title="$(translate "Options Menu")" \
+            --title="$(translate "MiniOS Installer")" \
             --text="$(translate "Select installation options for MiniOS"):\n" \
             --width=300 --height=200 \
             --buttons-layout="center" \
@@ -231,7 +231,8 @@ main_menu() {
             --form \
             --field="$(translate "Select device"):CB" "${DISKS}" \
             --field="$(translate "Select file system"):CB" "${FILESYSTEMS}" \
-            --field="$(translate "EFI"):CHK" "" "$(translate "GPT"):CHK" \
+            --field="$(translate "EFI Support Installation"):CHK" \
+            --field="$(translate "Use GPT Partition Table (default: MBR)"):CHK" \
             --button=gtk-cancel:101 \
             --button="$(translate "Install")!ubiquity":102 \
             --button=gtk-refresh:103
@@ -253,7 +254,7 @@ main_menu() {
         exit 0
         ;;
     102)
-        install_minios | yad --progress --title="$(translate "Process")" --text="$(translate "Iniciando...")" --auto-close --auto-kill
+        install_minios | yad --progress --width=250 --height=100 --title="$(translate "MiniOS Installer")" --text="$(translate "Installing...")" --auto-close --auto-kill
         ;;
     103)
         main_menu
@@ -264,20 +265,20 @@ main_menu() {
 final_question() {
     FINAL_FORM=$(
         yad --form \
-            --title="$(translate "Completion Message")" \
+            --title="$(translate "MiniOS Minstaller")" \
             --text="$(translate "Thank you for installing MiniOS")" \
-            --width=300 --height=200 \
+            --width=200 --height=100 \
             --buttons-layout="center" \
             --on-top \
             --form \
-            --button="$(translate "Return to Installer")!open-menu":101 \
-            --button="$(translate "Restart the Computer")!gtk-refresh":102
+            --button="$(translate "Finish")!open-menu":101 \
+            --button="$(translate "Reboot")!gtk-refresh":102
     )
     local BUTTON=$?
 
     case $BUTTON in
-    101) # Return to Main Menu
-        main_menu
+    101) # Finish installer MiniOS
+        exit
         ;;
     102) # Restart the Computer
         reboot
