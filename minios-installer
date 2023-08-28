@@ -240,11 +240,37 @@ install_boot_record() {
     cd "$CWD"
 }
 
-# Perform the MiniOS installation process
+# Show error message
 show_error_message() {
     local error_message="$1"
     yad --error --title="$(translate "Error")" --text="$(translate "An error occurred during the installation of MiniOS on disk")"
     exit 1
+}
+
+
+# Confirmation question for installation
+installation_warning() {
+    INSTALLATION_WARNING=$(
+        yad --form \
+            --title="$(translate "WARNING!")" \
+            --text="$(translate "All data be lost! Selected device:") $DEV" \
+            --width=200 --height=100 \
+            --buttons-layout="center" \
+            --on-top \
+            --form \
+            --button="$(translate "Return")!open-menu":120 \
+            --button="$(translate "Continue")!gtk-ok":121
+    )
+    local BUTTON=$?
+
+    case $BUTTON in
+    120) # Return Main Menu
+        main_menu
+        ;;
+    121) # Continue installation
+        install_minios | yad --progress --width=250 --height=100 --title="$(translate "MiniOS Installer")" --text="$(translate "Installing...")" --auto-close --auto-kill
+        ;;
+    esac
 }
 
 # Perform the MiniOS installation process
@@ -308,7 +334,7 @@ main_menu() {
         exit 0
         ;;
     102)
-        install_minios | yad --progress --width=250 --height=100 --title="$(translate "MiniOS Installer")" --text="$(translate "Installing...")" --auto-close --auto-kill
+        installation_warning
         ;;
     103)
         main_menu
@@ -316,6 +342,7 @@ main_menu() {
     esac
 }
 
+# 
 final_question() {
     FINAL_FORM=$(
         yad --form \

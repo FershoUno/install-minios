@@ -6,10 +6,15 @@
   "Cancel": "Cancelar",
   "Install": "Instalar",
   "Reload": "Recargar",
+  "Are you sure you want to continue?\nAll data will be destroyed.": "Esta seguro que desea continuar?\nTodos los datos seran destruidos..",
   "Installing...": "Instalando...",
+  "WARNING!": "ADVERTENCIA!",
+  "All data be lost! Selected device:": "¡Todos los datos se perderán! Dispositivo seleccionado:",
   "Error": "Error",
   "An error occurred during the installation of MiniOS on disk": "Ocurrió un error durante la instalación de MiniOS en el disco",
   "Thank you for installing MiniOS": "Gracias por instalar MiniOS",
+  "Return": "Regresar",
+  "Continue": "Continuar",
   "Finish": "Finalizar",
   "Reboot": "Reiniciar"
 }

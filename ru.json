@@ -7,6 +7,8 @@
   "Install": "Установить",
   "Reload": "Перезагрузить",
   "Installing...": "Установка...",
+  "WARNING!": "ВНИМАНИЕ!",
+  "All data be lost! Selected device:": "Все данные будут утеряны! Выбранное устройство:",
   "Error": "Ошибка",
   "An error occurred during the installation of MiniOS on disk": "Произошла ошибка при установке MiniOS на диск",
   "Thank you for installing MiniOS": "Спасибо за установку MiniOS",
