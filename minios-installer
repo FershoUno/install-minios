@@ -5,6 +5,10 @@
 # Include the minioslib library and exit if it fails
 . /usr/lib/minioslib || exit 1
 
+# Icon path
+
+ICON="/usr/share/minios/minios-installer/minios.png"
+
 # Set the version number and current working directory
 VERSION="1.0"
 CWD=$(pwd)
@@ -243,7 +247,7 @@ install_boot_record() {
 # Show error message
 show_error_message() {
     local error_message="$1"
-    yad --error --title="$(translate "Error")" --text="$(translate "An error occurred during the installation of MiniOS on disk")"
+    yad --window-icon="$ICON" --error --title="$(translate "Error")" --text="$(translate "An error occurred during the installation of MiniOS on disk")"
     exit 1
 }
 
@@ -252,6 +256,7 @@ show_error_message() {
 installation_warning() {
     INSTALLATION_WARNING=$(
         yad --form \
+	    --window-icon="$ICON" \
             --title="$(translate "WARNING!")" \
             --text="$(translate "All data be lost! Selected device:") $DEV" \
             --width=200 --height=100 \
@@ -268,8 +273,8 @@ installation_warning() {
         main_menu
         ;;
     121) # Continue installation
-        install_minios | yad --progress --width=250 --height=100 --title="$(translate "MiniOS Installer")" --text="$(translate "Installing...")" --auto-close --auto-kill
-        ;;
+        install_minios | yad --window-icon="$ICON" --progress --width=250 --height=100 --title="$(translate "MiniOS Installer")" --text="$(translate "Installing...")" --auto-close --auto-kill
+        ;; 
     esac
 }
 
@@ -301,6 +306,7 @@ main_menu() {
     list_disks
     MAIN_FORM=$(
         yad --form \
+            --window-icon="$ICON" \
             --title="$(translate "MiniOS Installer")" \
             --text="$(translate "Select installation options for MiniOS"):\n" \
             --width=300 --height=200 \
@@ -346,6 +352,7 @@ main_menu() {
 final_question() {
     FINAL_FORM=$(
         yad --form \
+	    --window-icon="$ICON" \
             --title="$(translate "MiniOS Installer")" \
             --text="$(translate "Thank you for installing MiniOS")" \
             --width=200 --height=100 \
