@@ -271,7 +271,7 @@ installation_warning() {
         main_menu
         ;;
     121) # Continue installation
-        install_minios | yad --window-icon="gtk-refresh" --progress --width=250 --height=100 --title="$(translate "MiniOS Installer")" --text="$(translate "Installing...")" --auto-close --auto-kill
+        install_minios | yad --borders=10 --window-icon="gtk-refresh" --progress --width=250 --height=100 --title="$(translate "MiniOS Installer")" --text="$(translate "Installing...")" --auto-close --auto-kill
         ;; 
     esac
 }
