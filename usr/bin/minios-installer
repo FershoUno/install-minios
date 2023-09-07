@@ -243,22 +243,24 @@ install_boot_record() {
 # Show error message
 show_error_message() {
     local error_message="$1"
-    yad --window-icon="ubiquity" --error --title="$(translate "Error")" --text="$(translate "An error occurred during the installation of MiniOS on disk")"
+    yad --window-icon="$ICON" --error --title="$(translate "Error")" --text="$(translate "An error occurred during the installation of MiniOS on disk")"
     exit 1
 }
+
 
 # Confirmation question for installation
 installation_warning() {
     INSTALLATION_WARNING=$(
         yad --form \
-            --window-icon="ubiquity" \
-            --title="$(translate "WARNING!")" \
-            --text="$(translate "All data be lost! Selected device:") $DEV" \
-            --width=200 --height=100 \
+	    --window-icon="gtk-refresh" \
+            --title="$(translate "WARNING")" \
+            --text="\n$(translate '<span foreground="red" font="Bold" font-size="xx-large">All data on the selected device will be lost!</span>\n<span font-size="x-large">Selected device:</span>') <span font=\"Bold\" font-size=\"x-large\">$DEV</span>" \
+            --text-align="center" \
+            --width=300 --height=200 \
             --buttons-layout="center" \
             --on-top \
             --form \
-            --button="$(translate "Return")!open-menu":120 \
+            --button="$(translate "Return")!edit-undo":120 \
             --button="$(translate "Continue")!gtk-ok":121
     )
     local BUTTON=$?
@@ -268,8 +270,8 @@ installation_warning() {
         main_menu
         ;;
     121) # Continue installation
-        install_minios | yad --window-icon="ubiquity" --progress --width=250 --height=100 --title="$(translate "MiniOS Installer")" --text="$(translate "Installing...")" --auto-close --auto-kill
-        ;;
+        install_minios | yad --window-icon="$ICON" --progress --width=250 --height=100 --title="$(translate "MiniOS Installer")" --text="$(translate "Installing...")" --auto-close --auto-kill
+        ;; 
     esac
 }
 
@@ -301,9 +303,10 @@ main_menu() {
     list_disks
     MAIN_FORM=$(
         yad --form \
-            --window-icon="ubiquity" \
+            --window-icon="gtk-refresh" \
             --title="$(translate "MiniOS Installer")" \
-            --text="$(translate "Select installation options for MiniOS"):\n" \
+            --text="$(translate '\n<span font-size="large">Select installation options for MiniOS</span>'):\n" \
+            --text-align="center" \
             --width=300 --height=200 \
             --buttons-layout="center" \
             --on-top \
@@ -343,11 +346,11 @@ main_menu() {
     esac
 }
 
-#
+# 
 final_question() {
     FINAL_FORM=$(
         yad --form \
-            --window-icon="ubiquity" \
+	    --window-icon="gtk-refresh" \
             --title="$(translate "MiniOS Installer")" \
             --text="$(translate "Thank you for installing MiniOS")" \
             --width=200 --height=100 \
