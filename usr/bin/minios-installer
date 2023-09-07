@@ -243,7 +243,7 @@ install_boot_record() {
 # Show error message
 show_error_message() {
     local error_message="$1"
-    yad --window-icon="$ICON" --error --title="$(translate "Error")" --text="$(translate "An error occurred during the installation of MiniOS on disk")"
+    yad --borders=10 --window-icon="gtk-refersh" --error --title="$(translate "Error")" --text="$(translate "An error occurred during the installation of MiniOS on disk")"
     exit 1
 }
 
@@ -252,6 +252,7 @@ show_error_message() {
 installation_warning() {
     INSTALLATION_WARNING=$(
         yad --form \
+        --borders=10 \
 	    --window-icon="gtk-refresh" \
             --title="$(translate "WARNING")" \
             --text="\n$(translate '<span foreground="red" font="Bold" font-size="xx-large">All data on the selected device will be lost!</span>\n<span font-size="x-large">Selected device:</span>') <span font=\"Bold\" font-size=\"x-large\">$DEV</span>" \
@@ -270,7 +271,7 @@ installation_warning() {
         main_menu
         ;;
     121) # Continue installation
-        install_minios | yad --window-icon="$ICON" --progress --width=250 --height=100 --title="$(translate "MiniOS Installer")" --text="$(translate "Installing...")" --auto-close --auto-kill
+        install_minios | yad --window-icon="gtk-refresh" --progress --width=250 --height=100 --title="$(translate "MiniOS Installer")" --text="$(translate "Installing...")" --auto-close --auto-kill
         ;; 
     esac
 }
@@ -303,6 +304,7 @@ main_menu() {
     list_disks
     MAIN_FORM=$(
         yad --form \
+            --borders=10 \
             --window-icon="gtk-refresh" \
             --title="$(translate "MiniOS Installer")" \
             --text="$(translate '\n<span font-size="large">Select installation options for MiniOS</span>'):\n" \
@@ -350,6 +352,7 @@ main_menu() {
 final_question() {
     FINAL_FORM=$(
         yad --form \
+        --borders=10 \
 	    --window-icon="gtk-refresh" \
             --title="$(translate "MiniOS Installer")" \
             --text="$(translate "Thank you for installing MiniOS")" \
