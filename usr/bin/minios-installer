@@ -247,7 +247,7 @@ show_error_message() {
         --window-icon="ubiquity" \
         --title="$(translate 'Error')" \
         --error \
-        --text="$(translate 'An error occurred during the installation of MiniOS on disk.')"
+        --text="$(translate 'An error occurred during the installation of MiniOS on disk')"
     exit 1
 }
 
